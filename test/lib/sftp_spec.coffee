@@ -1048,3 +1048,59 @@ describe 'SFTP', ->
             error message
           '''
           done()
+
+  describe '#chmod', ->
+    cbSpy = null
+
+    beforeEach ->
+      cbSpy = sinon.spy()
+      sinon.stub sftp, '_runCommand'
+
+    it 'calls _runCommand with mv command', ->
+      sftp.chmod '0755', 'remote-file', cbSpy
+      expect(sftp._runCommand).to.have.been.calledWith "chmod '0755' 'remote-file'"
+
+    context 'when _runCommand succeeds', ->
+      beforeEach ->
+        output = '''
+          chmod 0755 remote-file 
+          Changing mode on remote-file
+        ''' + '\nsftp> '
+        sftp._runCommand.callsArgWith 1, output
+
+      it 'returns no errors', (done) ->
+        sftp.chmod '0755', 'remote-file', (err) -> 
+          expect(err).not.to.exist
+          done()
+
+    context 'when _runCommand fails with bad path', ->
+      beforeEach ->
+        output = '''
+          chmod 0755 remote-file 
+          Couldn't chmod file "remote-file": No such file or directory
+        ''' + '\nsftp> '
+        sftp._runCommand.callsArgWith 1, output
+
+      it 'returns an error', (done) ->
+        sftp.chmod '0755', 'remote-file', (err) -> 
+          expect(err).to.be.an.instanceOf Error
+          expect(err.message).to.equal 'Couldn\'t chmod file "remote-file": No such file or directory'
+          done()
+
+    context 'when there are some other types of error', ->
+      beforeEach ->
+        output = '''
+          chmod 0755 remote-file
+          some random
+          error message
+        ''' + '\nsftp> '
+        sftp._runCommand.callsArgWith 1, output
+
+      it 'returns an error', (done) ->
+        sftp.chmod '0755', 'remote-file', (err) -> 
+          expect(err).to.be.an.instanceOf Error
+          expect(err.message).to.equal '''
+            some random
+            error message
+          '''
+          done()

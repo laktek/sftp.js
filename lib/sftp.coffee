@@ -204,3 +204,13 @@ module.exports = class SFTP
   rename: (filePath, newFilePath, callback) ->
     this._doBlankResponseCmd 'rename', filePath, newFilePath, callback
 
+  chmod: (permission, filePath, callback) ->
+    this._runCommand "chmod #{@constructor.escape permission} #{@constructor.escape filePath}", (data) ->
+      lines = data.split "\n"
+      lines.shift()
+      lines.pop()
+      if /^Changing mode\s/.test lines.slice(-1)
+        callback()
+      else
+        callback new Error(lines.join "\n")
+
